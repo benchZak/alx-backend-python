@@ -6,7 +6,7 @@ def connect_db():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        password="Jocker3136!"  # Change as needed
+        password="fffer"  # Change as needed
     )
 
 def create_database(connection):
@@ -18,7 +18,7 @@ def connect_to_prodev():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        password="Jocker3136!",  # Change as needed
+        password="fffer",  # Change as needed
         database="ALX_prodev"
     )
 
