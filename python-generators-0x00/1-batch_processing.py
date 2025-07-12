@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+ #!/usr/bin/python3
 import mysql.connector
 
 def stream_users_in_batches(batch_size):
@@ -21,7 +21,7 @@ def stream_users_in_batches(batch_size):
             # Fetch a batch of rows
             batch = cursor.fetchmany(batch_size)
             if not batch:
-                break
+                return  # Proper generator termination
             yield batch
             
     finally:
@@ -40,3 +40,4 @@ def batch_processing(batch_size):
             # Filter users over 25
             if user['age'] > 25:
                 yield user
+    return  # Optional but explicit generator termination
