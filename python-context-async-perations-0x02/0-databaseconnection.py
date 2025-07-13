@@ -31,3 +31,29 @@ class DatabaseConnection:
         if self.connection:
             self.connection.close()
 
+# ------------------------------------------------------------------
+# --- Usage / Demonstration ----------------------------------------
+# ------------------------------------------------------------------
+if __name__ == "__main__":
+    # Ensure a small demo table exists for the sake of the example
+    with DatabaseConnection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL
+            );
+        """)
+        cur.executemany("INSERT OR IGNORE INTO users (name) VALUES (?);",
+                        [("Alice",), ("Bob",), ("Charlie",)])
+        conn.commit()
+
+    # Now use the context manager to perform the requested query
+    with DatabaseConnection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM users;")
+        rows = cur.fetchall()
+
+    # Print the results
+    for row in rows:
+        print(row)
