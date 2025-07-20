@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'chats',
 ]
+AUTH_USER_MODEL = 'chats.User'
 
 # Add these new configurations at the bottom of the file
 REST_FRAMEWORK = {
