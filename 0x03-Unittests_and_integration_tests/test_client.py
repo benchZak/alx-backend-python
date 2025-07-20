@@ -51,11 +51,15 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test that public_repos returns correct list - Task 6"""
         test_repos = [{"name": "repo1"}, {"name": "repo2"}]
         mock_get_json.return_value = test_repos
-        with patch('client.GithubOrgClient._public_repos_url',
-                  new_callable=PropertyMock,
-                  return_value="mock_url"):
+        
+        with patch(
+            'client.GithubOrgClient._public_repos_url',
+            new_callable=PropertyMock,
+            return_value="mock_url"
+        ):
             client = GithubOrgClient("google")
             result = client.public_repos()
+            
             self.assertEqual(result, ["repo1", "repo2"])
             mock_get_json.assert_called_once()
             client._public_repos_url.assert_called_once()
@@ -76,9 +80,10 @@ class TestGithubOrgClient(unittest.TestCase):
 # =============================================
 # TASK 8: Integration test with fixtures
 # =============================================
-@parameterized_class(('org_payload', 'repos_payload',
-                     'expected_repos', 'apache2_repos'),
-                    TEST_PAYLOAD)
+@parameterized_class(
+    ('org_payload', 'repos_payload', 'expected_repos', 'apache2_repos'),
+    TEST_PAYLOAD
+)
 class TestIntegrationGithubOrgClient(unittest.TestCase):
     """Integration test for GithubOrgClient - Task 8"""
 
@@ -111,8 +116,10 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     def test_public_repos_with_license(self):
         """Test public_repos with license filter - Task 8"""
         client = GithubOrgClient("google")
-        self.assertEqual(client.public_repos(license="apache-2.0"),
-                         self.apache2_repos)
+        self.assertEqual(
+            client.public_repos(license="apache-2.0"),
+            self.apache2_repos
+        )
 
 
 if __name__ == "__main__":
