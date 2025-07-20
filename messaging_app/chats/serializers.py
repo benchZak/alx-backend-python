@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import User, Conversation, Message
-from rest_framework.exceptions import ValidationError
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 class MessageSerializer(serializers.ModelSerializer):
-    message_body = serializers.CharField()  # Explicit use of CharField
+    message_body = serializers.CharField()  # Explicit use
     sender = UserSerializer(read_only=True)
 
     class Meta:
@@ -22,13 +21,13 @@ class MessageSerializer(serializers.ModelSerializer):
 
     def validate_message_body(self, value):
         if not value.strip():
-            raise ValidationError("Message body cannot be empty.")
+            raise serializers.ValidationError("Message body cannot be empty.")  # ✅ This is the key fix
         return value
 
 class ConversationSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
     messages = MessageSerializer(many=True, read_only=True)
-    message_count = serializers.SerializerMethodField()  # Adds method field
+    message_count = serializers.SerializerMethodField()  # ✅ SerializerMethodField used
 
     class Meta:
         model = Conversation
