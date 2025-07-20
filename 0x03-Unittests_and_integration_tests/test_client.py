@@ -35,10 +35,11 @@ class TestGithubOrgClient(unittest.TestCase):
     # =============================================
     def test_public_repos_url(self):
         """Test that _public_repos_url returns correct value - Task 5"""
-        test_payload = {"repos_url": "https://api.github.com/orgs/google/repos"}
-        with patch('client.GithubOrgClient.org',
-                  new_callable=PropertyMock,
-                  return_value=test_payload):
+        test_payload = {
+                "repos_url": "https://api.github.com/orgs/google/repos"
+                }
+        with patch('client.GithubOrgClient.org', new_callable=PropertyMock,
+                   return_value=test_payload):
             client = GithubOrgClient("google")
             result = client._public_repos_url
             self.assertEqual(result, test_payload["repos_url"])
@@ -51,9 +52,11 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test that public_repos returns correct list - Task 6"""
         test_repos = [{"name": "repo1"}, {"name": "repo2"}]
         mock_get_json.return_value = test_repos
-        with patch('client.GithubOrgClient._public_repos_url',
-                  new_callable=PropertyMock,
-                  return_value="mock_url"):
+        with patch(
+                'client.GithubOrgClient._public_repos_url',
+                new_callable=PropertyMock,
+                return_value="mock_url"
+                ):
             client = GithubOrgClient("google")
             result = client.public_repos()
             self.assertEqual(result, ["repo1", "repo2"])
@@ -121,10 +124,12 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         client = GithubOrgClient("google")
         repos = client.public_repos(license="apache-2.0")
         self.assertEqual(repos, self.apache2_repos)
-        
+
         # Verify mock was called with expected URLs
         self.mock_get.assert_any_call("https://api.github.com/orgs/google")
-        self.mock_get.assert_any_call("https://api.github.com/orgs/google/repos")
+        self.mock_get.assert_any_call(
+                "https://api.github.com/orgs/google/repos"
+                )
 
 
 if __name__ == "__main__":
