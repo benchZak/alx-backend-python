@@ -6,6 +6,7 @@ from parameterized import parameterized
 from unittest.mock import patch, Mock, PropertyMock
 from utils import access_nested_map, get_json, memoize
 
+
 # =============================================
 # TASK 0: Test access_nested_map function
 # =============================================
@@ -33,10 +34,11 @@ class TestAccessNestedMap(unittest.TestCase):
         # Test case 2: Missing nested key
         ({"a": 1}, ("a", "b"), KeyError),
     ])
-    def test_access_nested_map_exception(self, nested_map, path, expected_exception):
+    def test_access_nested_map_exception(self, nested_map, path, expected_exc):
         """Test that access_nested_map raises correct exceptions - Task 1"""
-        with self.assertRaises(expected_exception):
+        with self.assertRaises(expected_exc):
             access_nested_map(nested_map, path)
+
 
 # =============================================
 # TASK 2: Test get_json function
@@ -52,7 +54,7 @@ class TestGetJson(unittest.TestCase):
     ])
     @patch('requests.get')
     def test_get_json(self, test_url, test_payload, mock_get):
-        """Test that get_json returns expected result without making actual HTTP calls - Task 2"""
+        """Test get_json returns expected result without HTTP calls - Task 2"""
         # Setup mock response
         mock_response = Mock()
         mock_response.json.return_value = test_payload
@@ -64,6 +66,7 @@ class TestGetJson(unittest.TestCase):
         # Assertions
         mock_get.assert_called_once_with(test_url)
         self.assertEqual(result, test_payload)
+
 
 # =============================================
 # TASK 3: Test memoize decorator
@@ -99,6 +102,7 @@ class TestMemoize(unittest.TestCase):
             self.assertEqual(result1, 42)
             self.assertEqual(result2, 42)
             mock_method.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
