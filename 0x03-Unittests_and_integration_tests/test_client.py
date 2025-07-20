@@ -35,10 +35,11 @@ class TestGithubOrgClient(unittest.TestCase):
     # =============================================
     def test_public_repos_url(self):
         """Test that _public_repos_url returns correct value - Task 5"""
-        test_payload = {"repos_url": "https://api.github.com/orgs/google/repos"}
-        with patch('client.GithubOrgClient.org',
-                  new_callable=PropertyMock,
-                  return_value=test_payload):
+        test_payload = {
+                "repos_url": "https://api.github.com/orgs/google/repos"
+                }
+        with patch('client.GithubOrgClient.org', new_callable=PropertyMock,
+                   return_value=test_payload):
             client = GithubOrgClient("google")
             result = client._public_repos_url
             self.assertEqual(result, test_payload["repos_url"])
@@ -51,15 +52,12 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test that public_repos returns correct list - Task 6"""
         test_repos = [{"name": "repo1"}, {"name": "repo2"}]
         mock_get_json.return_value = test_repos
-        
         with patch(
-            'client.GithubOrgClient._public_repos_url',
-            new_callable=PropertyMock,
-            return_value="mock_url"
-        ):
+                'client.GithubOrgClient._public_repos_url',
+                new_callable=PropertyMock,
+                return_value="mock_url"):
             client = GithubOrgClient("google")
             result = client.public_repos()
-            
             self.assertEqual(result, ["repo1", "repo2"])
             mock_get_json.assert_called_once()
             client._public_repos_url.assert_called_once()
@@ -76,10 +74,11 @@ class TestGithubOrgClient(unittest.TestCase):
         result = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(result, expected)
 
-
 # =============================================
 # TASK 8: Integration test with fixtures
 # =============================================
+
+
 @parameterized_class(
     ('org_payload', 'repos_payload', 'expected_repos', 'apache2_repos'),
     TEST_PAYLOAD
