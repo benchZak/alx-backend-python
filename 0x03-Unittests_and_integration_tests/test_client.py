@@ -53,7 +53,7 @@ class TestGithubOrgClient(unittest.TestCase):
         test_repos = [{"name": "repo1"}, {"name": "repo2"}]
         mock_get_json.return_value = test_repos
         with patch(
-                'client.GithubOrgClient._public_repos_url',
+                   'client.GithubOrgClient._public_repos_url',
                 new_callable=PropertyMock,
                 return_value="mock_url"):
             client = GithubOrgClient("google")
