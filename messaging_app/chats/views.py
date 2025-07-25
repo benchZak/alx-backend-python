@@ -5,6 +5,9 @@ from .models import Conversation, Message, User
 from .serializers import ConversationSerializer, MessageSerializer
 from .permissions import IsOwner
 from .permissions import IsParticipantOfConversation
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.status import HTTP_403_FORBIDDEN
+
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
@@ -75,3 +78,11 @@ class MessageViewSet(viewsets.ModelViewSet):
             conversation__participants=self.request.user
         )
 
+    def perform_create(self, serializer):
+        conversation = serializer.validated_data.get("conversation")
+        if self.request.user not in conversation.participants.all():
+            return Response(
+                {"detail": "You are not a participant of this conversation."},
+                status=HTTP_403_FORBIDDEN
+            )
+        serializer.save(sender=self.request.user)
