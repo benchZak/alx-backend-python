@@ -8,6 +8,7 @@ from .permissions import IsParticipantOfConversation
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.status import HTTP_403_FORBIDDEN
 from django_filters.rest_framework import DjangoFilterBackend
+from .filters import MessageFilter
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
