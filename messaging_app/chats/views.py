@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Conversation, Message, User
 from .serializers import ConversationSerializer, MessageSerializer
 from .permissions import IsOwner
+from .permissions import IsParticipantOfConversation
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
@@ -38,7 +39,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsParticipantOfConversation]
     filter_backends = [filters.SearchFilter]
     search_fields = ['sender__username', 'conversation__conversation_id']
 
@@ -65,4 +66,12 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = Message.objects.create(sender=sender, conversation=conversation, message_body=message_body)
         serializer = self.get_serializer(message)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get_queryset(self):
+        """
+        Return messages in conversations where the user is a participant
+        """
+        return Message.objects.filter(
+            conversation__participants=self.request.user
+        )
 
