@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Conversation, Message, User
 from .serializers import ConversationSerializer, MessageSerializer
+from .permissions import IsOwner
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
@@ -28,6 +29,11 @@ class ConversationViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(conversation)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_queryset(self):
+        user = self.request.user
+        return Conversation.objects.filter(participants=user)
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
