@@ -7,6 +7,7 @@ from .permissions import IsOwner
 from .permissions import IsParticipantOfConversation
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.status import HTTP_403_FORBIDDEN
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
@@ -43,33 +44,11 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated, IsParticipantOfConversation]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['sender__username', 'conversation__conversation_id']
+    filterset_class = MessageFilter
+    pagination_class = None  # Remove if you want to use global pagination
 
-    def create(self, request, *args, **kwargs):
-        sender_id = request.data.get('sender_id')
-        conversation_id = request.data.get('conversation_id')
-        message_body = request.data.get('message_body', '').strip()
-
-        if not sender_id or not conversation_id or not message_body:
-            return Response({"error": "sender_id, conversation_id and message_body are required."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        # Validate sender and conversation exist
-        try:
-            sender = User.objects.get(user_id=sender_id)
-        except User.DoesNotExist:
-            return Response({"error": "Invalid sender_id."}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            conversation = Conversation.objects.get(conversation_id=conversation_id)
-        except Conversation.DoesNotExist:
-            return Response({"error": "Invalid conversation_id."}, status=status.HTTP_400_BAD_REQUEST)
-
-        message = Message.objects.create(sender=sender, conversation=conversation, message_body=message_body)
-        serializer = self.get_serializer(message)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
     def get_queryset(self):
         """
         Return messages in conversations where the user is a participant
@@ -81,8 +60,5 @@ class MessageViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         conversation = serializer.validated_data.get("conversation")
         if self.request.user not in conversation.participants.all():
-            return Response(
-                {"detail": "You are not a participant of this conversation."},
-                status=HTTP_403_FORBIDDEN
-            )
+            raise PermissionDenied("You are not a participant of this conversation.")
         serializer.save(sender=self.request.user)
