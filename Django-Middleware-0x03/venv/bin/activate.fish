@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/userf/Documents/Alx/BE_dev/alx-backend-python/messaging_app/venv"
+set -gx VIRTUAL_ENV "/home/userf/Documents/Alx/BE_dev/alx-backend-python/Django-Middleware-0x03/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
