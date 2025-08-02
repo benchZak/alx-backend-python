@@ -6,10 +6,48 @@ from django.utils.translation import gettext_lazy as _
 
 User = get_user_model()
 
+class UnreadMessagesManager(models.Manager):
+    """
+    Custom manager for unread messages with optimized queries.
+    """
+    def for_user(self, user):
+        """
+        Returns unread messages for a specific user.
+        Uses only() to fetch only necessary fields.
+        """
+        return self.get_queryset().filter(
+            receiver=user,
+            is_read=False
+        ).select_related(
+            'sender'
+        ).only(
+            'id',
+            'content',
+            'timestamp',
+            'sender__id',
+            'sender__username',
+            'sender__email'
+        ).order_by('-timestamp')
+
+    def count_for_user(self, user):
+        """
+        Optimized count of unread messages for a user.
+        """
+        return self.get_queryset().filter(
+            receiver=user,
+            is_read=False
+        ).count()
+
 class Message(models.Model):
     """
-    Represents a message in a threaded conversation system.
+    Message model with read status tracking and custom managers.
     """
+    # Standard manager
+    objects = models.Manager()
+    
+    # Custom manager for unread messages
+    unread = UnreadMessagesManager()
+
     sender = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -22,40 +60,42 @@ class Message(models.Model):
         related_name='received_messages',
         verbose_name=_('receiver')
     )
+    content = models.TextField(verbose_name=_('content'))
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('sent at'))
+    is_read = models.BooleanField(
+        default=False,
+        verbose_name=_('is read'),
+        help_text=_('Designates whether the message has been read.'))
     parent_message = models.ForeignKey(
         'self',
-        on_delete=models.CASCADE,
-        related_name='replies',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_('parent message'),
-        help_text=_('The message this is a reply to')
-    )
-    content = models.TextField(verbose_name=_('content'))
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name=_('sent at'))
-    is_read = models.BooleanField(default=False, verbose_name=_('is read'))
-    edited = models.BooleanField(default=False, verbose_name=_('edited'))
-    last_edited = models.DateTimeField(null=True, blank=True, verbose_name=_('last edited at'))
+        related_name='replies',
+        verbose_name=_('parent message'))
+    edited = models.BooleanField(
+        default=False,
+        verbose_name=_('edited'))
+    last_edited = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_('last edited at'))
 
     class Meta:
         ordering = ['-timestamp']
         verbose_name = _('message')
         verbose_name_plural = _('messages')
         indexes = [
+            models.Index(fields=['receiver', 'is_read']),
             models.Index(fields=['sender', 'receiver']),
             models.Index(fields=['timestamp']),
-            models.Index(fields=['parent_message']),
-            models.Index(fields=['is_read']),
-            models.Index(fields=['edited']),
         ]
         constraints = [
             models.CheckConstraint(
                 check=~models.Q(sender=models.F('receiver')),
                 name='no_self_messages'
-            ),
-            models.CheckConstraint(
-                check=~models.Q(id=models.F('parent_message')),
-                name='no_self_replies'
             )
         ]
 
@@ -66,65 +106,63 @@ class Message(models.Model):
             receiver=self.receiver
         )
 
+    def mark_as_read(self):
+        """
+        Mark message as read and save.
+        """
+        if not self.is_read:
+            self.is_read = True
+            self.save(update_fields=['is_read'])
+
+    def mark_as_unread(self):
+        """
+        Mark message as unread and save.
+        """
+        if self.is_read:
+            self.is_read = False
+            self.save(update_fields=['is_read'])
+
     def clean(self):
         """Validate message relationships."""
         if self.sender == self.receiver:
             raise ValidationError(_('Users cannot send messages to themselves.'))
-        
-        if self.parent_message and self.parent_message.parent_message:
-            raise ValidationError(_('Cannot reply to a reply. Please reply to the original message.'))
-        
-        if self.parent_message and self.parent_message.receiver != self.sender:
-            raise ValidationError(_('You can only reply to messages sent to you.'))
-        
         super().clean()
 
-    def get_thread(self, depth=10):
-        """
-        Recursively fetch the entire message thread.
-        Uses prefetch_related to optimize database queries.
-        """
-        def get_replies(message, current_depth):
-            if current_depth >= depth:
-                return []
-            replies = list(message.replies.all())
-            for reply in replies:
-                reply.replies_list = get_replies(reply, current_depth + 1)
-            return replies
 
-        thread = []
-        current = self
-        while current:
-            current.replies_list = get_replies(current, 0)
-            thread.append(current)
-            current = current.parent_message
-        
-        return reversed(thread)
+class Notification(models.Model):
+    """
+    Notification model that works with the messaging system.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name=_('user'))
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name=_('message'))
+    is_read = models.BooleanField(
+        default=False,
+        verbose_name=_('is read'))
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('created at'))
 
-    @classmethod
-    def get_conversation_threads(cls, user1, user2):
-        """
-        Get all message threads between two users.
-        Optimized with select_related and prefetch_related.
-        """
-        return cls.objects.filter(
-            models.Q(sender=user1, receiver=user2) |
-            models.Q(sender=user2, receiver=user1),
-            parent_message__isnull=True
-        ).select_related(
-            'sender', 'receiver'
-        ).prefetch_related(
-            models.Prefetch(
-                'replies',
-                queryset=cls.objects.select_related('sender', 'receiver')
-                .prefetch_related('replies')
-            )
-        ).order_by('-timestamp')
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = _('notification')
+        verbose_name_plural = _('notifications')
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+        ]
+
+    def __str__(self):
+        return _('Notification for %(user)s') % {'user': self.user}
 
     def mark_as_read(self):
-        """Mark the message and its thread as read."""
+        """Mark notification as read and save."""
         if not self.is_read:
             self.is_read = True
             self.save(update_fields=['is_read'])
-            # Mark all replies as read
-            self.replies.all().update(is_read=True)
