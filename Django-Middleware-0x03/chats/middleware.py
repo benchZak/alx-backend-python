@@ -1,4 +1,3 @@
-# chats/middleware.py
 from datetime import datetime, timedelta
 from django.http import JsonResponse
 
@@ -9,10 +8,8 @@ class RequestLoggingMiddleware:
     def __call__(self, request):
         user = request.user.username if request.user.is_authenticated else "Anonymous"
         log_entry = f"{datetime.now()} - User: {user} - Path: {request.path}\n"
-        
         with open("requests.log", "a") as log_file:
             log_file.write(log_entry)
-        
         response = self.get_response(request)
         return response
 
@@ -20,8 +17,8 @@ class OffensiveLanguageMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         self.ip_requests = {}
-        self.limit = 5  # 5 messages
-        self.time_window = 60  # 60 seconds (1 minute)
+        self.limit = 5
+        self.time_window = 60
 
     def __call__(self, request):
         if request.method == 'POST' and ('/messages/' in request.path or '/send/' in request.path):

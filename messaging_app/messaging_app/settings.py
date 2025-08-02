@@ -45,7 +45,7 @@ INSTALLED_APPS = [
 ]
 
 #AUTH_USER_MODEL = 'chats.User'
-AUTH_USER_MODEL = 'auth.User'  # If using default Django User
+AUTH_USER_MODEL = 'chats.User'  # If using default Django User
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
