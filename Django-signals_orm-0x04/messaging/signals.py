@@ -36,3 +36,21 @@ def log_message_edit(sender, instance, **kwargs):
                 instance.last_edited = timezone.now()
         except Message.DoesNotExist:
             pass  # New message being created
+
+@receiver(post_delete, sender=User)
+def cleanup_user_data(sender, instance, **kwargs):
+    """
+    Clean up related data when a user is deleted.
+    This is a backup in case CASCADE doesn't work as expected.
+    """
+    # Delete sent messages
+    Message.objects.filter(sender=instance).delete()
+    
+    # Delete received messages
+    Message.objects.filter(receiver=instance).delete()
+    
+    # Delete notifications
+    Notification.objects.filter(user=instance).delete()
+    
+    # Update message history edited_by (set to NULL)
+    MessageHistory.objects.filter(edited_by=instance).update(edited_by=None)

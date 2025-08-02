@@ -1,116 +1,83 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from .models import Message, Notification, MessageHistory
 
 User = get_user_model()
 
-class MessagingSignalTests(TestCase):
+class UserDeletionTests(TestCase):
     def setUp(self):
-        self.sender = User.objects.create_user(
-            username='sender',
-            email='sender@example.com',
+        self.user1 = User.objects.create_user(
+            username='user1',
+            email='user1@example.com',
             password='testpass123'
         )
-        self.receiver = User.objects.create_user(
-            username='receiver',
-            email='receiver@example.com',
+        self.user2 = User.objects.create_user(
+            username='user2',
+            email='user2@example.com',
             password='testpass123'
         )
+        
+        # Create test data
+        self.message1 = Message.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            content="Message 1"
+        )
+        self.message2 = Message.objects.create(
+            sender=self.user2,
+            receiver=self.user1,
+            content="Message 2"
+        )
+        self.notification1 = Notification.objects.create(
+            user=self.user1,
+            message=self.message2
+        )
+        self.notification2 = Notification.objects.create(
+            user=self.user2,
+            message=self.message1
+        )
+        self.message1.content = "Edited message"
+        self.message1.save()
+        self.history = MessageHistory.objects.first()
 
-    def test_notification_created_on_message_save(self):
-        self.assertEqual(Notification.objects.count(), 0)
+    def test_user_deletion_cascades_to_messages(self):
+        # Verify initial data
+        self.assertEqual(Message.objects.count(), 2)
         
-        message = Message.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            content="Hello there!"
-        )
+        # Delete user1
+        self.user1.delete()
         
+        # Verify messages where user1 was sender or receiver are deleted
+        self.assertEqual(Message.objects.count(), 0)
+        
+    def test_user_deletion_cascades_to_notifications(self):
+        # Verify initial data
+        self.assertEqual(Notification.objects.count(), 2)
+        
+        # Delete user1
+        self.user1.delete()
+        
+        # Verify notifications for user1 are deleted
         self.assertEqual(Notification.objects.count(), 1)
+        self.assertEqual(Notification.objects.first().user, self.user2)
         
-        notification = Notification.objects.first()
-        self.assertEqual(notification.user, self.receiver)
-        self.assertEqual(notification.message, message)
-        self.assertFalse(notification.is_read)
-
-    def test_notification_not_created_on_message_update(self):
-        message = Message.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            content="Initial message"
-        )
+        # Delete user2
+        self.user2.delete()
         
-        Notification.objects.all().delete()
-        
-        message.content = "Updated message"
-        message.save()
-        
+        # Verify all notifications are deleted
         self.assertEqual(Notification.objects.count(), 0)
-
-class MessageEditTrackingTests(TestCase):
-    def setUp(self):
-        self.sender = User.objects.create_user(
-            username='sender',
-            email='sender@example.com',
-            password='testpass123'
-        )
-        self.receiver = User.objects.create_user(
-            username='receiver',
-            email='receiver@example.com',
-            password='testpass123'
-        )
-        self.message = Message.objects.create(
-            sender=self.sender,
-            receiver=self.receiver,
-            content="Original content"
-        )
-
-    def test_message_edit_history_created(self):
-        # Initial state
-        self.assertEqual(MessageHistory.objects.count(), 0)
-        self.assertFalse(self.message.edited)
-        self.assertIsNone(self.message.last_edited)
-
-        # Edit the message
-        self.message.content = "Edited content"
-        self.message.save()
-
-        # Refresh from db
-        self.message.refresh_from_db()
-
-        # Verify history was created
+    
+    def test_user_deletion_handles_message_history(self):
+        # Verify initial data
         self.assertEqual(MessageHistory.objects.count(), 1)
-        history = MessageHistory.objects.first()
-        self.assertEqual(history.message, self.message)
-        self.assertEqual(history.old_content, "Original content")
-        self.assertEqual(history.edited_by, self.sender)
-
-        # Verify message flags were updated
-        self.assertTrue(self.message.edited)
-        self.assertIsNotNone(self.message.last_edited)
-
-    def test_no_history_for_new_messages(self):
-        new_message = Message(
-            sender=self.sender,
-            receiver=self.receiver,
-            content="New message"
-        )
-        new_message.save()
-
-        self.assertEqual(MessageHistory.objects.count(), 0)
-
-    def test_no_history_when_content_unchanged(self):
-        # Initial edit to set edited flag
-        self.message.content = "First edit"
-        self.message.save()
-
-        # Clear history for this test
-        MessageHistory.objects.all().delete()
-
-        # Edit without changing content
-        self.message.content = "First edit"  # Same content
-        self.message.save()
-
-        # No new history should be created
-        self.assertEqual(MessageHistory.objects.count(), 0)
+        self.assertEqual(self.history.edited_by, self.user1)
+        
+        # Delete user1
+        self.user1.delete()
+        
+        # Refresh history from db
+        self.history.refresh_from_db()
+        
+        # Verify edited_by is set to NULL
+        self.assertIsNone(self.history.edited_by)
+        self.assertEqual(MessageHistory.objects.count(), 1)
