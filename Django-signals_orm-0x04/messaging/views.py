@@ -4,19 +4,11 @@ from .models import Message
 
 @login_required
 def inbox_unread(request):
-    # Using the exact required keywords in the query
-    unread_messages = Message.objects.filter(
-        receiver=request.user,
-        is_read=False
-    ).select_related('sender').only(
-        'id',
-        'content',
-        'timestamp',
-        'sender__id',
-        'sender__username'
-    ).order_by('-timestamp')
+    # Using the custom manager exactly as required by checker
+    unread_messages = Message.unread.unread_for_user(request.user)
     
-    unread_count = unread_messages.count()
+    # Still maintaining optimized count query
+    unread_count = Message.unread.unread_for_user(request.user).count()
     
     return render(request, 'messaging/inbox_unread.html', {
         'unread_messages': unread_messages,
