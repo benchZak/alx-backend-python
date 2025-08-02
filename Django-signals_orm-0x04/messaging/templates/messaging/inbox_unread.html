@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Your Unread Messages ({{ unread_count }})</h2>
+    
+    {% if unread_messages %}
+    <div class="list-group">
+        {% for message in unread_messages %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between">
+                <h5>From: {{ message.sender.username }}</h5>
+                <small>{{ message.timestamp }}</small>
+            </div>
+            <p>{{ message.content }}</p>
+            <form method="post" action="{% url 'mark_as_read' message.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">
+                    Mark as Read
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        You have no unread messages.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
