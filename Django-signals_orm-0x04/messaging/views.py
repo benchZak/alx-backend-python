@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Message
 
 @login_required
+@cache_page(60)  # Cache this view for 60 seconds
 def inbox_unread(request):
     # First query: Using custom manager exactly as required
     unread_messages = Message.unread.unread_for_user(request.user)

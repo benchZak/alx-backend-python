@@ -28,7 +28,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
 # Application definition
 
 INSTALLED_APPS = [
@@ -52,9 +57,16 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'django.middleware.cache.UpdateCacheMiddleware',
+        'django.middleware.common.CommonMiddleware',
+        'django.middleware.cache.FetchFromCacheMiddleware',
         # You might want to add TokenAuthentication later:
         # 'rest_framework.authentication.TokenAuthentication',
     ],
+    
+    # Cache timeout settings
+    CACHE_MIDDLEWARE_SECONDS = 60  # Default cache timeout for middleware
+    
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
