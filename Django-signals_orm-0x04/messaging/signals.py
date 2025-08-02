@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.core.cache import cache
 from .models import Message, Notification, MessageHistory, User
@@ -15,11 +15,11 @@ def create_message_notification(sender, instance, created, **kwargs):
 def log_message_edit(sender, instance, **kwargs):
     if instance.pk and not created:
         try:
-            old_message = Message.objects.get(pk=instance.pk)
-            if old_message.content != instance.content:
+            original = Message.objects.get(pk=instance.pk)
+            if original.content != instance.content:
                 MessageHistory.objects.create(
                     message=instance,
-                    old_content=old_message.content,
+                    old_content=original.content,
                     edited_by=instance.sender
                 )
                 instance.edited = True
@@ -28,9 +28,8 @@ def log_message_edit(sender, instance, **kwargs):
             pass
 
 @receiver(post_delete, sender=User)
-def cleanup_user_data(sender, instance, **kwargs):
+def clean_user_data(sender, instance, **kwargs):
     Message.objects.filter(sender=instance).delete()
     Message.objects.filter(receiver=instance).delete()
     Notification.objects.filter(user=instance).delete()
-    MessageHistory.objects.filter(edited_by=instance).update(edited_by=None)
     cache.clear()
