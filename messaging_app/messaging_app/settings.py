@@ -65,7 +65,6 @@ REST_FRAMEWORK = {
     ],
     
     # Cache timeout settings
-    CACHE_MIDDLEWARE_SECONDS = 60  # Default cache timeout for middleware
     
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -77,6 +76,7 @@ REST_FRAMEWORK = {
     ),
 }
 
+CACHE_MIDDLEWARE_SECONDS = 60  # Default cache timeout for middleware
 from datetime import timedelta
 
 SIMPLE_JWT = {
